@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowUpRight, Building2, Clock, Inbox, ShieldCheck, Users } from "lucide-react";
+import { ArrowUpRight, Building2, Clock, Inbox, MessageSquareText, ShieldCheck, Users } from "lucide-react";
 import { DashboardSkeleton } from "@/components/account/DashboardShell";
 import { StatusBadge } from "@/components/account/StatusBadge";
 import { ButtonLink } from "@/components/ui/Button";
@@ -23,7 +23,7 @@ async function Overview() {
   const [published, pending, newLeads, owners, pendingList, leads, verifAccounts, verifDocs] = await Promise.all([
     count(supabase.from("properties").select("id", { count: "exact", head: true }).eq("status", "published")),
     count(supabase.from("properties").select("id", { count: "exact", head: true }).eq("status", "pending")),
-    count(supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "nouveau")),
+    count(supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "nouveau").eq("kind", "projet")),
     count(supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "owner")),
     supabase.from("properties").select("*").eq("status", "pending").order("updated_at", { ascending: false }).limit(5),
     supabase.from("leads").select("id, name, subject, kind, status, created_at").order("created_at", { ascending: false }).limit(6),
@@ -31,11 +31,15 @@ async function Overview() {
     count(supabase.from("documents").select("id", { count: "exact", head: true }).eq("status", "pending").not("property_id", "is", null)),
   ]);
   const verifications = verifAccounts + verifDocs;
+  const unreadMessages = await count(
+    supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "nouveau").eq("kind", "contact"),
+  );
 
   const cards = [
     { label: "Biens publiés", value: published, Icon: Building2, href: "/admin/biens?statut=published" },
     { label: "À valider", value: pending, Icon: Clock, href: "/admin/biens?statut=pending", highlight: pending > 0 },
     { label: "Vérifications à faire", value: verifications, Icon: ShieldCheck, href: "/admin/verifications", highlight: verifications > 0 },
+    { label: "Messages non lus", value: unreadMessages, Icon: MessageSquareText, href: "/admin/messages?statut=nouveau", highlight: unreadMessages > 0 },
     { label: "Nouvelles demandes", value: newLeads, Icon: Inbox, href: "/admin/demandes?statut=nouveau", highlight: newLeads > 0 },
     { label: "Propriétaires inscrits", value: owners, Icon: Users, href: "/admin/utilisateurs" },
   ];
@@ -48,7 +52,7 @@ async function Overview() {
         <ButtonLink href="/admin/biens/nouveau">Ajouter un bien</ButtonLink>
       </div>
 
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(({ label, value, Icon, href, highlight }) => (
           <li key={label}>
             <Link
@@ -98,23 +102,28 @@ async function Overview() {
 
         <section aria-labelledby="dernieres-demandes" className="rounded-3xl bg-white p-6 ring-1 ring-line">
           <div className="mb-5 flex items-center justify-between">
-            <h2 id="dernieres-demandes" className="text-xl font-bold">Dernières demandes</h2>
-            <Link href="/admin/demandes" className="text-sm font-semibold text-accent-strong hover:underline">Tout voir</Link>
+            <h2 id="dernieres-demandes" className="text-xl font-bold">Messages et demandes</h2>
+            <Link href="/admin/messages" className="text-sm font-semibold text-accent-strong hover:underline">Messages</Link>
           </div>
           {(leads.data ?? []).length === 0 ? (
-            <p className="rounded-2xl bg-sand p-6 text-center text-muted">Aucune demande pour l&apos;instant.</p>
+            <p className="rounded-2xl bg-sand p-6 text-center text-muted">Aucun message pour l&apos;instant.</p>
           ) : (
             <ul className="divide-y divide-line">
               {(leads.data ?? []).map((l) => (
-                <li key={l.id} className="flex items-center justify-between gap-4 py-3">
-                  <span className="min-w-0">
-                    <span className="block truncate font-semibold">{l.name}</span>
-                    <span className="block truncate text-sm text-muted">{l.subject || (l.kind === "contact" ? "Message" : "Projet")}</span>
-                  </span>
-                  <span className="shrink-0 text-right text-xs text-muted">
-                    {l.status === "nouveau" && <span className="mb-1 block font-bold text-accent-strong">Nouveau</span>}
-                    {timeAgo(l.created_at)}
-                  </span>
+                <li key={l.id}>
+                  <Link href={l.kind === "contact" ? "/admin/messages" : "/admin/demandes"} className="flex items-center justify-between gap-4 py-3 hover:bg-sand/60">
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-2">
+                        <span className="truncate font-semibold">{l.name}</span>
+                        <span className="shrink-0 rounded-full bg-sand px-2 py-0.5 text-[0.7rem] font-semibold">{l.kind === "contact" ? "Message" : "Projet"}</span>
+                      </span>
+                      <span className="block truncate text-sm text-muted">{l.subject || (l.kind === "contact" ? "Message" : "Projet")}</span>
+                    </span>
+                    <span className="shrink-0 text-right text-xs text-muted">
+                      {l.status === "nouveau" && <span className="mb-1 block font-bold text-accent-strong">{l.kind === "contact" ? "Non lu" : "Nouveau"}</span>}
+                      {timeAgo(l.created_at)}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>

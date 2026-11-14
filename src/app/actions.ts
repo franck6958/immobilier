@@ -1,6 +1,7 @@
 "use server";
 
 import { site } from "@/lib/site";
+import { adminLink, notifyWhatsApp } from "@/lib/whatsapp-notify";
 import { createPublicClient } from "@/lib/supabase/clients";
 import type { Database, Json } from "@/lib/supabase/database.types";
 
@@ -136,11 +137,25 @@ export async function sendContact(_prev: FormState, fd: FormData): Promise<FormS
     subject: values.subject || "Contact",
     message: values.message,
   });
-  const mailed = await deliver(
+  const [mailed] = await Promise.all([
+    deliver(
     `Nouveau message — ${values.subject || "Contact"}`,
     { Nom: values.name, "E-mail": values.email, Téléphone: values.phone, Objet: values.subject, Message: values.message },
     values.email,
-  );
+    ),
+    notifyWhatsApp(
+      [
+        `📩 *Nouveau message* — ${site.name}`,
+        `*${values.name}*${values.phone ? ` · ${values.phone}` : ""}`,
+        values.email,
+        values.subject ? `Objet : ${values.subject}` : "",
+        "",
+        values.message.length > 600 ? values.message.slice(0, 600) + "…" : values.message,
+        "",
+        `Répondre : ${adminLink("/admin/messages")}`,
+      ].filter((l, i, a) => l || a[i - 1]).join("\n"),
+    ),
+  ]);
   if (!saved && !mailed) {
     return { status: "error", message: "L'envoi a échoué. Réessayez ou contactez-nous sur WhatsApp.", values };
   }
@@ -193,6 +208,17 @@ export async function sendRequest(_prev: FormState, fd: FormData): Promise<FormS
     message: details,
     data: { project, ...rest } as Json,
   });
+  const notified = notifyWhatsApp(
+    [
+      `🏠 *Nouvelle demande* — ${values.project}${values.propertyType ? ` · ${values.propertyType}` : ""} à ${values.city}`,
+      `*${values.name}* · ${values.phone}`,
+      values.propertyRef ? `Bien : ${values.propertyRef}` : "",
+      values.budget ? `Budget : ${values.budget}` : "",
+      `Contact préféré : ${values.contactPref}`,
+      "",
+      `Voir : ${adminLink("/admin/demandes")}`,
+    ].filter((l, i, a) => l || a[i - 1]).join("\n"),
+  );
   const mailed = await deliver(
     `Nouveau projet — ${values.project}${values.propertyType ? ` · ${values.propertyType}` : ""} à ${values.city}${values.propertyRef ? ` (réf. ${values.propertyRef})` : ""}`,
     {
@@ -212,6 +238,7 @@ export async function sendRequest(_prev: FormState, fd: FormData): Promise<FormS
     },
     values.email,
   );
+  await notified;
   if (!saved && !mailed) {
     return { status: "error", message: "L'envoi a échoué. Réessayez ou contactez-nous sur WhatsApp.", values };
   }

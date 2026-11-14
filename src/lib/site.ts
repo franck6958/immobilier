@@ -22,7 +22,7 @@ export const site = {
   contact: {
     phone: "+237 690 00 00 00",
     phoneHref: "tel:+237690000000",
-    whatsapp: "237690000000", // format international sans "+" ni espaces
+    whatsapp: "237659715681", // +237 659 71 56 81 — format international sans "+" ni espaces
     whatsappMessage: "Bonjour Ébène Immobilier, je souhaite des informations pour un projet immobilier.",
     email: "contact@ebene-immobilier.cm",
   },

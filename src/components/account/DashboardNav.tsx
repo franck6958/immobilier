@@ -9,6 +9,7 @@ import {
   Inbox,
   KeyRound,
   LayoutDashboard,
+  MessageSquareText,
   PlusCircle,
   ShieldCheck,
   UserRound,
@@ -17,7 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const icons: Record<string, LucideIcon> = { Building2, Home, Inbox, KeyRound, LayoutDashboard, PlusCircle, ShieldCheck, UserRound, Users };
+const icons: Record<string, LucideIcon> = { Building2, Home, Inbox, KeyRound, LayoutDashboard, MessageSquareText, PlusCircle, ShieldCheck, UserRound, Users };
 
 export type NavItem = { href: string; label: string; icon: keyof typeof icons; exact?: boolean };
 

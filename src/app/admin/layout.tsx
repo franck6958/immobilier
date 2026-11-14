@@ -13,6 +13,7 @@ const nav: NavItem[] = [
   { href: "/admin", label: "Tableau de bord", icon: "LayoutDashboard", exact: true },
   { href: "/admin/biens", label: "Biens", icon: "Building2" },
   { href: "/admin/verifications", label: "Vérifications", icon: "ShieldCheck" },
+  { href: "/admin/messages", label: "Messages", icon: "MessageSquareText" },
   { href: "/admin/demandes", label: "Demandes", icon: "Inbox" },
   { href: "/admin/utilisateurs", label: "Utilisateurs", icon: "Users" },
   { href: "/espace", label: "Mon espace", icon: "UserRound", exact: true },

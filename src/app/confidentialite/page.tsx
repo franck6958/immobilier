@@ -29,6 +29,11 @@ export default function PrivacyPage() {
             Vos données servent exclusivement à répondre à vos demandes et à vous proposer des biens ou une estimation (mesures
             précontractuelles), ainsi qu&apos;à améliorer le site (consentement). Elles ne sont jamais vendues.
           </p>
+          <p>
+            Pour vous répondre rapidement, chaque message envoyé depuis le site est enregistré dans notre espace de gestion
+            sécurisé et signalé à notre équipe par une notification WhatsApp (nom, coordonnées et contenu du message),
+            transmise via le service d&apos;alerte CallMeBot.
+          </p>
           <h2>Durée de conservation</h2>
           <p>
             Les demandes sans suite sont conservées 3 ans à compter du dernier contact ; les données clients pendant la

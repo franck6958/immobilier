@@ -128,3 +128,23 @@ Cette règle est appliquée **par la base de données** (déclencheur `guard_pro
 - Admin : **Vérifications** (file d'attente des comptes et des justificatifs), fiche utilisateur (valider / refuser chaque pièce avec motif, puis valider le compte), fiche bien (justificatifs + raisons qui bloquent la publication).
 - Les pièces sont dans le stockage **privé** `owner-documents` (jamais public) ; l'admin les consulte via des liens signés valables 10 minutes. Les photos sont réduites à 2400 px côté navigateur, les PDF envoyés tels quels (10 Mo max).
 - La règle ne s'applique qu'au **passage** à « Publié » : les annonces déjà en ligne avant cette fonctionnalité restent publiées.
+
+---
+
+## Messages et notifications WhatsApp
+
+- **Admin → Messages** : messages du formulaire Contact (Non lu / Lu / Répondu), bouton « Répondre sur WhatsApp » avec un début de réponse déjà rédigé, e-mail, appel.
+- **Admin → Demandes** : demandes du formulaire « Votre projet ».
+- Numéro WhatsApp du site (bouton flottant, liens) : **+237 659 71 56 81** (`site.contact.whatsapp` dans `src/lib/site.ts`).
+
+### Recevoir une alerte WhatsApp à chaque nouveau message
+
+Le site envoie une notification sur le WhatsApp de l'agence via **CallMeBot** (gratuit). Activation, une seule fois :
+
+1. Depuis le téléphone **+237 659 71 56 81**, ajoutez le contact CallMeBot et envoyez-lui le message `I allow callmebot to send me messages`
+   (le numéro à jour du bot est indiqué sur https://www.callmebot.com/blog/free-api-whatsapp-messages/).
+2. Le bot répond avec une **clé API** (« apikey »).
+3. Dans Vercel → projet → Settings → Environment Variables, ajoutez `CALLMEBOT_APIKEY` = cette clé (Production), puis redéployez.
+
+Facultatif : `WHATSAPP_NOTIFY_PHONE` pour envoyer les alertes à un autre numéro que celui du site (format `237XXXXXXXXX`).
+Sans clé, rien n'est envoyé : les messages restent consultables dans le tableau de bord.
