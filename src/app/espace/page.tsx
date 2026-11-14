@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { CircleCheck, Eye, Pencil, PlusCircle, Trash2 } from "lucide-react";
+import { CircleCheck, Eye, FileCheck2, Pencil, PlusCircle, ShieldAlert, Trash2 } from "lucide-react";
 import { DashboardSkeleton } from "@/components/account/DashboardShell";
 import { StatusBadge } from "@/components/account/StatusBadge";
 import { ConfirmSubmit } from "@/components/account/ConfirmSubmit";
@@ -9,7 +9,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { deleteProperty } from "@/lib/property-actions";
 import { toProperty } from "@/lib/data/property-model";
-import { formatDate, formatPrice } from "@/lib/utils";
+import { ownershipLabels, ownershipState, type DocKind, type DocStatus } from "@/lib/data/document-model";
+import { cn, formatDate, formatPrice } from "@/lib/utils";
 
 const notices: Record<string, string> = {
   envoye: "Votre annonce a bien été envoyée. L'agence la vérifie et la publie sous 48 h ouvrées.",
@@ -23,12 +24,15 @@ async function MyProperties({ searchParams }: { searchParams: PageProps<"/espace
   const welcome = sp.bienvenue === "1";
   const refused = sp.refus === "admin";
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("properties")
-    .select("*")
-    .eq("owner_id", user.id)
-    .order("created_at", { ascending: false });
+  const [{ data }, { data: profile }, { data: docRows }] = await Promise.all([
+    supabase.from("properties").select("*").eq("owner_id", user.id).order("created_at", { ascending: false }),
+    supabase.from("profiles").select("verification_status, verification_note").eq("id", user.id).single(),
+    supabase.from("documents").select("property_id, kind, status").eq("owner_id", user.id).not("property_id", "is", null),
+  ]);
   const list = (data ?? []).map(toProperty);
+  const verif = profile?.verification_status ?? "unverified";
+  const proofOf = (id: string) =>
+    ownershipState((docRows ?? []).filter((d) => d.property_id === id).map((d) => ({ kind: d.kind as DocKind, status: d.status as DocStatus })));
 
   return (
     <div className="space-y-6">
@@ -43,6 +47,24 @@ async function MyProperties({ searchParams }: { searchParams: PageProps<"/espace
           {ok ?? "Bienvenue ! Votre compte est actif. Déposez votre premier bien en quelques minutes."}
         </p>
       )}
+      {verif !== "verified" && user.role !== "admin" && (
+        <div className={cn("flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between", verif === "pending" ? "bg-amber-50 text-amber-900" : "bg-ink text-paper")}>
+          <p className="flex items-start gap-3 text-sm">
+            <ShieldAlert className={cn("mt-0.5 size-5 shrink-0", verif !== "pending" && "text-accent")} aria-hidden />
+            <span>
+              {verif === "pending" && <><strong>Vérification en cours.</strong> L&apos;agence examine votre pièce d&apos;identité.</>}
+              {verif === "unverified" && <><strong>Vérifiez votre identité</strong> : sans cela, vos annonces ne peuvent pas être publiées.</>}
+              {verif === "rejected" && <><strong>Vérification refusée.</strong> {profile?.verification_note}</>}
+            </span>
+          </p>
+          {verif !== "pending" && (
+            <Link href="/espace/verification" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-ink hover:bg-accent-strong">
+              {verif === "rejected" ? "Corriger mes pièces" : "Vérifier mon compte"}
+            </Link>
+          )}
+        </div>
+      )}
+
       {refused && (
         <p role="alert" className="rounded-2xl bg-danger/5 p-4 text-sm font-medium text-danger">
           L&apos;administration est réservée aux comptes de l&apos;agence.
@@ -78,6 +100,22 @@ async function MyProperties({ searchParams }: { searchParams: PageProps<"/espace
                   {p.city} · {formatPrice(p.price)}
                   {p.transaction === "Location" ? " / mois" : ""}
                 </p>
+                {(() => {
+                  const proof = proofOf(p.id);
+                  return (
+                    <Link
+                      href={`/espace/biens/${p.id}#documents`}
+                      className={cn(
+                        "mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold hover:underline",
+                        proof === "approved" && "bg-success/10 text-success",
+                        proof === "pending" && "bg-amber-100 text-amber-900",
+                        (proof === "missing" || proof === "rejected") && "bg-danger/10 text-danger",
+                      )}
+                    >
+                      <FileCheck2 className="size-3.5" aria-hidden /> {ownershipLabels[proof]}
+                    </Link>
+                  );
+                })()}
                 {p.status === "rejected" && p.adminNote && (
                   <p className="mt-3 rounded-xl bg-danger/5 p-3 text-sm text-danger">
                     <strong>Motif de l&apos;agence :</strong> {p.adminNote}

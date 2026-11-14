@@ -10,13 +10,14 @@ import {
   KeyRound,
   LayoutDashboard,
   PlusCircle,
+  ShieldCheck,
   UserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const icons: Record<string, LucideIcon> = { Building2, Home, Inbox, KeyRound, LayoutDashboard, PlusCircle, UserRound, Users };
+const icons: Record<string, LucideIcon> = { Building2, Home, Inbox, KeyRound, LayoutDashboard, PlusCircle, ShieldCheck, UserRound, Users };
 
 export type NavItem = { href: string; label: string; icon: keyof typeof icons; exact?: boolean };
 

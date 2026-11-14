@@ -44,7 +44,7 @@ export function DashboardShell({ area, nav, children }: { area: "owner" | "admin
           </div>
         </div>
       </div>
-      <div className="container-x grid gap-8 py-8 lg:grid-cols-[15rem_1fr] lg:py-12">
+      <div className="container-x grid grid-cols-1 gap-8 py-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:py-12">
         <DashboardNav items={nav} />
         <div className="min-w-0">{children}</div>
       </div>

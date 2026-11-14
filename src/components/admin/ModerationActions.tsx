@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Archive, Check, Eye, Loader2, Pencil, RotateCcw, Trash2, X } from "lucide-react";
-import { deleteProperty, setPropertyStatus } from "@/lib/property-actions";
+import { Archive, Check, Eye, Loader2, Lock, Pencil, RotateCcw, Trash2, X } from "lucide-react";
+import { deleteProperty, setPropertyStatus, type StatusFormState } from "@/lib/property-actions";
 import { ConfirmSubmit } from "@/components/account/ConfirmSubmit";
 
 function Btn({ children, className }: { children: React.ReactNode; className: string }) {
@@ -17,9 +17,27 @@ function Btn({ children, className }: { children: React.ReactNode; className: st
   );
 }
 
-function StatusForm({ id, status, children, className }: { id: string; status: string; children: React.ReactNode; className: string }) {
+function StatusForm({
+  id,
+  status,
+  children,
+  className,
+  onError,
+}: {
+  id: string;
+  status: string;
+  children: React.ReactNode;
+  className: string;
+  onError: (e: string) => void;
+}) {
+  const [, action] = useActionState<StatusFormState, FormData>(async (prev, fd) => {
+    onError("");
+    const res = await setPropertyStatus(prev, fd);
+    if (res.error) onError(res.error);
+    return res;
+  }, {});
   return (
-    <form action={setPropertyStatus}>
+    <form action={action}>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="status" value={status} />
       <Btn className={className}>{children}</Btn>
@@ -28,17 +46,40 @@ function StatusForm({ id, status, children, className }: { id: string; status: s
 }
 
 /** Boutons de modération d'une annonce. */
-export function ModerationActions({ id, status, slug, title }: { id: string; status: string; slug: string; title: string }) {
+export function ModerationActions({
+  id,
+  status,
+  slug,
+  title,
+  publishBlockers = [],
+}: {
+  id: string;
+  status: string;
+  slug: string;
+  title: string;
+  /** Raisons qui empêchent la publication (compte non vérifié, justificatif manquant…) */
+  publishBlockers?: string[];
+}) {
   const [rejecting, setRejecting] = useState(false);
+  const [error, setError] = useState("");
+  const [rejectState, rejectAction] = useActionState<StatusFormState, FormData>(setPropertyStatus, {});
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {status !== "published" && (
-          <StatusForm id={id} status="published" className="bg-success text-white hover:bg-success/90">
-            <Check className="size-4" aria-hidden /> Publier
-          </StatusForm>
-        )}
+        {status !== "published" &&
+          (publishBlockers.length ? (
+            <span
+              title={publishBlockers.join(" ")}
+              className="inline-flex min-h-10 cursor-not-allowed items-center gap-1.5 rounded-full bg-line px-3.5 text-sm font-semibold text-muted"
+            >
+              <Lock className="size-4" aria-hidden /> Publier
+            </span>
+          ) : (
+            <StatusForm id={id} status="published" onError={setError} className="bg-success text-white hover:bg-success/90">
+              <Check className="size-4" aria-hidden /> Publier
+            </StatusForm>
+          ))}
         {status !== "rejected" && status !== "archived" && (
           <button
             type="button"
@@ -50,12 +91,12 @@ export function ModerationActions({ id, status, slug, title }: { id: string; sta
           </button>
         )}
         {status === "published" && (
-          <StatusForm id={id} status="archived" className="border-[1.5px] border-line hover:border-ink">
+          <StatusForm id={id} status="archived" onError={setError} className="border-[1.5px] border-line hover:border-ink">
             <Archive className="size-4" aria-hidden /> Archiver
           </StatusForm>
         )}
         {(status === "archived" || status === "rejected") && (
-          <StatusForm id={id} status="pending" className="border-[1.5px] border-line hover:border-ink">
+          <StatusForm id={id} status="pending" onError={setError} className="border-[1.5px] border-line hover:border-ink">
             <RotateCcw className="size-4" aria-hidden /> Remettre en attente
           </StatusForm>
         )}
@@ -79,8 +120,21 @@ export function ModerationActions({ id, status, slug, title }: { id: string; sta
         </form>
       </div>
 
+      {status !== "published" && publishBlockers.length > 0 && (
+        <ul className="space-y-1 rounded-2xl bg-amber-50 p-3 text-sm text-amber-900">
+          {publishBlockers.map((b) => (
+            <li key={b} className="flex items-start gap-2">
+              <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {b}
+            </li>
+          ))}
+        </ul>
+      )}
+      {(error || rejectState.error) && (
+        <p role="alert" className="rounded-2xl bg-danger/5 p-3 text-sm font-medium text-danger">{error || rejectState.error}</p>
+      )}
+
       {rejecting && (
-        <form action={setPropertyStatus} onSubmit={() => setRejecting(false)} className="space-y-3 rounded-2xl bg-danger/5 p-4">
+        <form action={rejectAction} onSubmit={() => setRejecting(false)} className="space-y-3 rounded-2xl bg-danger/5 p-4">
           <input type="hidden" name="id" value={id} />
           <input type="hidden" name="status" value="rejected" />
           <label htmlFor={`note-${id}`} className="block text-sm font-semibold">Motif du refus (visible par le propriétaire)</label>

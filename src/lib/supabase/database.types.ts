@@ -7,6 +7,54 @@ export type Database = {
   };
   public: {
     Tables: {
+      documents: {
+        Row: {
+          id: string;
+          owner_id: string;
+          property_id: string | null;
+          kind: string;
+          file_path: string;
+          file_name: string;
+          mime: string;
+          size: number;
+          status: string;
+          admin_note: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          property_id?: string | null;
+          kind: string;
+          file_path: string;
+          file_name?: string;
+          mime?: string;
+          size?: number;
+          status?: string;
+          admin_note?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          property_id?: string | null;
+          kind?: string;
+          file_path?: string;
+          file_name?: string;
+          mime?: string;
+          size?: number;
+          status?: string;
+          admin_note?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "documents_owner_id_fkey"; columns: ["owner_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "documents_property_id_fkey"; columns: ["property_id"]; isOneToOne: false; referencedRelation: "properties"; referencedColumns: ["id"] },
+        ];
+      };
       leads: {
         Row: {
           created_at: string;
@@ -57,6 +105,10 @@ export type Database = {
           id: string;
           phone: string;
           role: string;
+          verification_status: string;
+          verification_note: string | null;
+          verification_submitted_at: string | null;
+          verified_at: string | null;
         };
         Insert: {
           created_at?: string;
@@ -65,6 +117,10 @@ export type Database = {
           id: string;
           phone?: string;
           role?: string;
+          verification_status?: string;
+          verification_note?: string | null;
+          verification_submitted_at?: string | null;
+          verified_at?: string | null;
         };
         Update: {
           created_at?: string;
@@ -73,6 +129,10 @@ export type Database = {
           id?: string;
           phone?: string;
           role?: string;
+          verification_status?: string;
+          verification_note?: string | null;
+          verification_submitted_at?: string | null;
+          verified_at?: string | null;
         };
         Relationships: [];
       };
@@ -188,3 +248,4 @@ export type Database = {
 export type PropertyRow = Database["public"]["Tables"]["properties"]["Row"];
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 export type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
+export type DocumentRow = Database["public"]["Tables"]["documents"]["Row"];

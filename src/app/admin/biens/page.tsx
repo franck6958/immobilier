@@ -6,6 +6,8 @@ import { CircleCheck, Plus } from "lucide-react";
 import { DashboardSkeleton } from "@/components/account/DashboardShell";
 import { StatusBadge } from "@/components/account/StatusBadge";
 import { ModerationActions } from "@/components/admin/ModerationActions";
+import { VerificationBadge } from "@/components/account/VerificationBadge";
+import { ownershipLabels, ownershipState, publishBlockers, type DocKind, type DocStatus } from "@/lib/data/document-model";
 import { ButtonLink } from "@/components/ui/Button";
 import { createClient, requireAdmin } from "@/lib/supabase/server";
 import { statusLabels, toProperty, type PropertyStatus } from "@/lib/data/property-model";
@@ -36,13 +38,18 @@ async function PropertiesAdmin({ searchParams }: { searchParams: PageProps<"/adm
   const supabase = await createClient();
   let query = supabase
     .from("properties")
-    .select("*, owner:profiles(full_name, email, phone)")
+    .select("*, owner:profiles(id, full_name, email, phone, role, verification_status)")
     .order("updated_at", { ascending: false });
   if (statut) query = query.eq("status", statut);
   if (q) query = query.or(`title.ilike.%${q.replace(/[%,()]/g, "")}%,ref.ilike.%${q.replace(/[%,()]/g, "")}%,city.ilike.%${q.replace(/[%,()]/g, "")}%`);
   const { data } = await query;
 
-  const { data: counts } = await supabase.from("properties").select("status");
+  const [{ data: counts }, { data: docRows }] = await Promise.all([
+    supabase.from("properties").select("status"),
+    supabase.from("documents").select("property_id, kind, status").not("property_id", "is", null),
+  ]);
+  const docsOf = (id: string) =>
+    (docRows ?? []).filter((d) => d.property_id === id).map((d) => ({ kind: d.kind as DocKind, status: d.status as DocStatus }));
   const countOf = (s: string) => (counts ?? []).filter((c) => !s || c.status === s).length;
 
   return (
@@ -92,7 +99,10 @@ async function PropertiesAdmin({ searchParams }: { searchParams: PageProps<"/adm
         <ul className="space-y-4">
           {(data ?? []).map((row) => {
             const p = toProperty(row);
-            const owner = row.owner as { full_name: string; email: string; phone: string } | null;
+            const owner = row.owner as { id: string; full_name: string; email: string; phone: string; role: string; verification_status: string } | null;
+            const docs = docsOf(p.id);
+            const proof = ownershipState(docs);
+            const isClient = owner && owner.role !== "admin";
             return (
               <li key={p.id} className="rounded-3xl bg-white p-4 ring-1 ring-line md:p-5">
                 <div className="flex flex-col gap-5 md:flex-row">
@@ -118,7 +128,7 @@ async function PropertiesAdmin({ searchParams }: { searchParams: PageProps<"/adm
                       <span className="text-muted">Propriétaire : </span>
                       {owner ? (
                         <>
-                          <strong>{owner.full_name || "—"}</strong>{" "}
+                          <Link href={`/admin/utilisateurs/${owner.id}`} className="font-bold hover:underline">{owner.full_name || "—"}</Link>{" "}
                           <a href={`mailto:${owner.email}`} className="text-accent-strong hover:underline">{owner.email}</a>
                           {owner.phone && <> · <a href={`tel:${owner.phone.replace(/\s/g, "")}`} className="text-accent-strong hover:underline">{owner.phone}</a></>}
                         </>
@@ -126,8 +136,24 @@ async function PropertiesAdmin({ searchParams }: { searchParams: PageProps<"/adm
                         <strong>Agence</strong>
                       )}
                     </p>
+                    {isClient && (
+                      <div className="flex flex-wrap gap-2">
+                        <VerificationBadge status={owner.verification_status} />
+                        <Link
+                          href={`/admin/biens/${p.id}#documents`}
+                          className={cn(
+                            "rounded-full px-3 py-1 text-xs font-bold hover:underline",
+                            proof === "approved" && "bg-success/10 text-success",
+                            proof === "pending" && "bg-amber-100 text-amber-900",
+                            (proof === "missing" || proof === "rejected") && "bg-danger/10 text-danger",
+                          )}
+                        >
+                          {ownershipLabels[proof]}
+                        </Link>
+                      </div>
+                    )}
                     {p.adminNote && <p className="rounded-xl bg-sand p-3 text-sm"><strong>Note :</strong> {p.adminNote}</p>}
-                    <ModerationActions id={p.id} status={p.status} slug={p.slug} title={p.title} />
+                    <ModerationActions id={p.id} status={p.status} slug={p.slug} title={p.title} publishBlockers={publishBlockers(owner, docs)} />
                   </div>
                 </div>
               </li>

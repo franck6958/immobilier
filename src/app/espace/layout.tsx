@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 const nav: NavItem[] = [
   { href: "/espace", label: "Mes biens", icon: "Home", exact: true },
   { href: "/espace/biens/nouveau", label: "Déposer un bien", icon: "PlusCircle" },
+  { href: "/espace/verification", label: "Vérification", icon: "ShieldCheck" },
   { href: "/espace/profil", label: "Mon profil", icon: "UserRound" },
   { href: "/espace/mot-de-passe", label: "Mot de passe", icon: "KeyRound" },
 ];

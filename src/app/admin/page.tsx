@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowUpRight, Building2, Clock, Inbox, Users } from "lucide-react";
+import { ArrowUpRight, Building2, Clock, Inbox, ShieldCheck, Users } from "lucide-react";
 import { DashboardSkeleton } from "@/components/account/DashboardShell";
 import { StatusBadge } from "@/components/account/StatusBadge";
 import { ButtonLink } from "@/components/ui/Button";
@@ -20,18 +20,22 @@ async function Overview() {
   await requireAdmin();
   const supabase = await createClient();
   const count = (q: PromiseLike<{ count: number | null }>) => q.then((r) => r.count ?? 0);
-  const [published, pending, newLeads, owners, pendingList, leads] = await Promise.all([
+  const [published, pending, newLeads, owners, pendingList, leads, verifAccounts, verifDocs] = await Promise.all([
     count(supabase.from("properties").select("id", { count: "exact", head: true }).eq("status", "published")),
     count(supabase.from("properties").select("id", { count: "exact", head: true }).eq("status", "pending")),
     count(supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "nouveau")),
     count(supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "owner")),
     supabase.from("properties").select("*").eq("status", "pending").order("updated_at", { ascending: false }).limit(5),
     supabase.from("leads").select("id, name, subject, kind, status, created_at").order("created_at", { ascending: false }).limit(6),
+    count(supabase.from("profiles").select("id", { count: "exact", head: true }).eq("verification_status", "pending")),
+    count(supabase.from("documents").select("id", { count: "exact", head: true }).eq("status", "pending").not("property_id", "is", null)),
   ]);
+  const verifications = verifAccounts + verifDocs;
 
   const cards = [
     { label: "Biens publiés", value: published, Icon: Building2, href: "/admin/biens?statut=published" },
     { label: "À valider", value: pending, Icon: Clock, href: "/admin/biens?statut=pending", highlight: pending > 0 },
+    { label: "Vérifications à faire", value: verifications, Icon: ShieldCheck, href: "/admin/verifications", highlight: verifications > 0 },
     { label: "Nouvelles demandes", value: newLeads, Icon: Inbox, href: "/admin/demandes?statut=nouveau", highlight: newLeads > 0 },
     { label: "Propriétaires inscrits", value: owners, Icon: Users, href: "/admin/utilisateurs" },
   ];
@@ -44,7 +48,7 @@ async function Overview() {
         <ButtonLink href="/admin/biens/nouveau">Ajouter un bien</ButtonLink>
       </div>
 
-      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
         {cards.map(({ label, value, Icon, href, highlight }) => (
           <li key={label}>
             <Link

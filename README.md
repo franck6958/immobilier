@@ -112,3 +112,19 @@ Le schéma est versionné dans les migrations Supabase du projet (`init_schema`,
 - **Modules optionnels (§4.3)** : alertes e-mail sur nouveaux biens, prise de rendez-vous de visite en ligne, espace propriétaire (relevés de gestion), paiement des loyers Mobile Money, multilingue, carte des biens.
 - **Contenus réels** : l'agence, les biens, prix, chiffres, avis et coordonnées sont fictifs ; les photos proviennent d'Unsplash (licence libre) et doivent idéalement être remplacées par des photos réelles du client (§5.1).
 - Recherche interne : non nécessaire sous 15 pages (§4.1).
+
+---
+
+## Vérification des propriétaires (pièces justificatives)
+
+Un bien déposé par un propriétaire **ne peut être publié** que si :
+
+1. **son compte est vérifié** : CNI recto + verso (obligatoires), photo tenant la CNI et justificatif de domicile (facultatifs), validés par l'agence ;
+2. **au moins un justificatif de propriété est validé** pour ce bien : titre foncier, acte de vente notarié ou certificat de propriété (plan cadastral, procuration et autres documents en complément).
+
+Cette règle est appliquée **par la base de données** (déclencheur `guard_property`) : elle ne peut pas être contournée, même par un appel direct à l'API. Les biens de l'agence (ajoutés par un admin) ne sont pas concernés.
+
+- Propriétaire : **Espace → Vérification** pour les pièces d'identité ; section **Justificatifs de propriété** sur la fiche de chaque bien.
+- Admin : **Vérifications** (file d'attente des comptes et des justificatifs), fiche utilisateur (valider / refuser chaque pièce avec motif, puis valider le compte), fiche bien (justificatifs + raisons qui bloquent la publication).
+- Les pièces sont dans le stockage **privé** `owner-documents` (jamais public) ; l'admin les consulte via des liens signés valables 10 minutes. Les photos sont réduites à 2400 px côté navigateur, les PDF envoyés tels quels (10 Mo max).
+- La règle ne s'applique qu'au **passage** à « Publié » : les annonces déjà en ligne avant cette fonctionnalité restent publiées.

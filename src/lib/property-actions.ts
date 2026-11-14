@@ -12,6 +12,7 @@ import {
   type PropertyStatus,
 } from "@/lib/data/property-model";
 import { PROPERTIES_TAG } from "@/lib/data/properties";
+import { DOCS_BUCKET } from "@/lib/data/documents";
 import type { Database } from "@/lib/supabase/database.types";
 
 export type PropertyFormState = {
@@ -26,6 +27,13 @@ type PropertyInsert = Database["public"]["Tables"]["properties"]["Insert"];
 
 const STORAGE_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/property-images/`;
 const STATUSES: PropertyStatus[] = ["pending", "published", "rejected", "archived"];
+
+/** Messages des règles de publication appliquées par la base. */
+function verificationError(message: string) {
+  if (message.includes("VERIF_COMPTE")) return "Publication impossible : le compte du propriétaire n'est pas encore vérifié (pièce d'identité).";
+  if (message.includes("VERIF_PROPRIETE")) return "Publication impossible : aucun justificatif de propriété (titre foncier, acte de vente ou certificat) n'a été validé pour ce bien.";
+  return null;
+}
 
 function str(fd: FormData, key: string, max = 200) {
   const v = fd.get(key);
@@ -121,17 +129,20 @@ export async function saveProperty(_prev: PropertyFormState, fd: FormData): Prom
   }
 
   const supabase = await createClient();
-  const { error } = id
-    ? await supabase.from("properties").update(row).eq("id", id)
-    : await supabase.from("properties").insert({ ...row, slug: makeSlug(title), ref: "" });
+  const { data: saved, error } = id
+    ? await supabase.from("properties").update(row).eq("id", id).select("id").single()
+    : await supabase.from("properties").insert({ ...row, slug: makeSlug(title), ref: "" }).select("id").single();
 
-  if (error) {
-    console.error("[bien] enregistrement", error.message);
-    return { status: "error", message: "L'enregistrement a échoué. Réessayez dans un instant.", values };
+  if (error || !saved) {
+    console.error("[bien] enregistrement", error?.message);
+    const message = (error && verificationError(error.message)) || "L'enregistrement a échoué. Réessayez dans un instant.";
+    return { status: "error", message, values };
   }
 
   updateTag(PROPERTIES_TAG);
-  redirect(isAdmin && str(fd, "area", 10) === "admin" ? "/admin/biens?ok=enregistre" : "/espace?ok=envoye");
+  if (isAdmin && str(fd, "area", 10) === "admin") redirect("/admin/biens?ok=enregistre");
+  // Nouveau bien : on emmène le propriétaire vers l'envoi des justificatifs de propriété
+  redirect(id ? "/espace?ok=envoye" : `/espace/biens/${saved.id}?ok=cree#documents`);
 }
 
 /** Suppression : le propriétaire ne peut supprimer qu'un bien non publié (règle RLS). */
@@ -139,7 +150,12 @@ export async function deleteProperty(fd: FormData) {
   const user = await requireUser("/espace");
   const id = str(fd, "id", 60);
   const supabase = await createClient();
+  const { data: docs } = await supabase.from("documents").select("file_path").eq("property_id", id);
   const { data: deleted, error } = await supabase.from("properties").delete().eq("id", id).select("images");
+  if (deleted?.length && docs?.length) {
+    const { error: docErr } = await supabase.storage.from(DOCS_BUCKET).remove(docs.map((d) => d.file_path));
+    if (docErr) console.error("[bien] suppression justificatifs", docErr.message);
+  }
   if (error) console.error("[bien] suppression", error.message);
   // Efface aussi les photos envoyées (les images d'exemple du dossier /images restent intactes)
   const paths = (deleted?.[0]?.images ?? [])
@@ -154,18 +170,24 @@ export async function deleteProperty(fd: FormData) {
 }
 
 /** Modération (admin) : publier, refuser avec motif, archiver, remettre en attente. */
-export async function setPropertyStatus(fd: FormData) {
+export type StatusFormState = { error?: string };
+
+export async function setPropertyStatus(_prev: StatusFormState, fd: FormData): Promise<StatusFormState> {
   await requireAdmin();
   const id = str(fd, "id", 60);
   const status = str(fd, "status", 20) as PropertyStatus;
-  if (!STATUSES.includes(status)) return;
+  if (!STATUSES.includes(status)) return { error: "Action invalide." };
   const note = str(fd, "admin_note", 500);
   const supabase = await createClient();
   const patch: Database["public"]["Tables"]["properties"]["Update"] = { status };
   if (status === "rejected") patch.admin_note = note || "Annonce incomplète : contactez l'agence pour plus de détails.";
   if (status === "published") patch.admin_note = null;
   const { error } = await supabase.from("properties").update(patch).eq("id", id);
-  if (error) console.error("[bien] statut", error.message);
+  if (error) {
+    console.error("[bien] statut", error.message);
+    return { error: verificationError(error.message) ?? "La mise à jour a échoué. Réessayez." };
+  }
   updateTag(PROPERTIES_TAG);
   refresh();
+  return {};
 }
