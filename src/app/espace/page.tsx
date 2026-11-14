@@ -137,7 +137,8 @@ async function MyProperties({ searchParams }: { searchParams: PageProps<"/espace
                   <form action={deleteProperty}>
                     <input type="hidden" name="id" value={p.id} />
                     <ConfirmSubmit
-                      message={`Supprimer définitivement l'annonce « ${p.title} » ?`}
+                      title="Supprimer cette annonce ?"
+                      message={`« ${p.title} » sera supprimée, avec ses photos et ses justificatifs de propriété.`}
                       className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-danger hover:bg-danger/5"
                     >
                       <Trash2 className="size-4" aria-hidden /> Supprimer

@@ -75,7 +75,10 @@ async function Users() {
                             <input type="hidden" name="id" value={u.id} />
                             <input type="hidden" name="role" value={isAdmin ? "owner" : "admin"} />
                             <ConfirmSubmit
-                              message={isAdmin ? `Retirer les droits d'administration à ${u.full_name || u.email} ?` : `Donner les droits d'administration à ${u.full_name || u.email} ? Cette personne pourra gérer tout le site.`}
+                              tone="default"
+                              title={isAdmin ? "Retirer les droits d'administration ?" : "Donner les droits d'administration ?"}
+                              confirmLabel={isAdmin ? "Retirer les droits" : "Rendre admin"}
+                              message={isAdmin ? `${u.full_name || u.email} n'aura plus accès au tableau de bord de l'agence.` : `${u.full_name || u.email} pourra gérer tout le site : biens, demandes, utilisateurs et vérifications.`}
                               className="text-xs font-semibold text-accent-strong underline-offset-2 hover:underline"
                             >
                               {isAdmin ? "Retirer admin" : "Rendre admin"}

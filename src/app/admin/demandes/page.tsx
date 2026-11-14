@@ -121,7 +121,7 @@ async function Leads({ searchParams }: { searchParams: PageProps<"/admin/demande
                     ))}
                   <form action={deleteLead} className="ml-auto">
                     <input type="hidden" name="id" value={l.id} />
-                    <ConfirmSubmit message={`Supprimer la demande de ${l.name} ?`} className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-danger hover:bg-danger/5">
+                    <ConfirmSubmit title="Supprimer cette demande ?" message={`La demande de ${l.name}${l.subject ? ` (« ${l.subject} »)` : ""} sera supprimée de votre liste.`} className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-danger hover:bg-danger/5">
                       <Trash2 className="size-4" aria-hidden /> Supprimer
                     </ConfirmSubmit>
                   </form>

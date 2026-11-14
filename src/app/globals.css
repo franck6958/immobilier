@@ -155,3 +155,49 @@ html.lenis, html.lenis body { height: auto; }
     scroll-behavior: auto !important;
   }
 }
+
+/* Fenêtre de confirmation (ConfirmSubmit) */
+.confirm-dialog {
+  opacity: 0;
+  transform: translateY(12px) scale(0.96);
+  transition:
+    opacity 0.2s ease,
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    overlay 0.25s allow-discrete,
+    display 0.25s allow-discrete;
+}
+.confirm-dialog[open] {
+  opacity: 1;
+  transform: none;
+}
+@starting-style {
+  .confirm-dialog[open] {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+}
+.confirm-dialog::backdrop {
+  background: rgb(20 17 15 / 0);
+  backdrop-filter: blur(0);
+  transition:
+    background 0.25s ease,
+    backdrop-filter 0.25s ease,
+    overlay 0.25s allow-discrete,
+    display 0.25s allow-discrete;
+}
+.confirm-dialog[open]::backdrop {
+  background: rgb(20 17 15 / 0.55);
+  backdrop-filter: blur(4px);
+}
+@starting-style {
+  .confirm-dialog[open]::backdrop {
+    background: rgb(20 17 15 / 0);
+    backdrop-filter: blur(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confirm-dialog,
+  .confirm-dialog::backdrop {
+    transition: none;
+  }
+}

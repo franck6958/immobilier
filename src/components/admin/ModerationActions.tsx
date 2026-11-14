@@ -112,7 +112,8 @@ export function ModerationActions({
           <input type="hidden" name="id" value={id} />
           <input type="hidden" name="area" value="admin" />
           <ConfirmSubmit
-            message={`Supprimer définitivement « ${title} » ? Cette action est irréversible.`}
+            title="Supprimer ce bien ?"
+            message={`« ${title} » sera supprimé du site, avec ses photos et ses justificatifs.`}
             className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-danger hover:bg-danger/5"
           >
             <Trash2 className="size-4" aria-hidden /> Supprimer

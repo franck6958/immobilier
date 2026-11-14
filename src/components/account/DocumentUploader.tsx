@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { CircleAlert, CircleCheck, Clock, FileText, Loader2, Trash2, Upload } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { deleteDocument, registerDocument } from "@/lib/document-actions";
+import { ConfirmSubmit } from "./ConfirmSubmit";
 import {
   DOC_MIME,
   MAX_DOC_BYTES,
@@ -72,7 +73,6 @@ function SlotRow({
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [deleting, startDelete] = useTransition();
   const inputId = `doc-${propertyId ?? "compte"}-${slot.kind}`;
 
   // Un nouvel envoi n'est utile que si rien n'est validé ou en attente (sauf pour « Autre document »)
@@ -166,16 +166,16 @@ function SlotRow({
                   <DocLink doc={d} />
                 </div>
                 {d.status !== "approved" && (
-                  <form action={(fd) => startDelete(() => deleteDocument(fd))}>
+                  <form action={deleteDocument}>
                     <input type="hidden" name="id" value={d.id} />
-                    <button
-                      type="submit"
-                      disabled={deleting}
-                      aria-label={`Supprimer ${d.fileName}`}
+                    <ConfirmSubmit
+                      ariaLabel={`Supprimer ${d.fileName}`}
+                      title="Supprimer ce document ?"
+                      message={`« ${slot.label} » (${d.fileName}) sera retiré de votre dossier. Vous pourrez en envoyer un autre.`}
                       className="grid size-10 place-items-center rounded-full text-danger hover:bg-danger/10 disabled:opacity-50"
                     >
-                      {deleting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Trash2 className="size-4" aria-hidden />}
-                    </button>
+                      <Trash2 className="size-4" aria-hidden />
+                    </ConfirmSubmit>
                   </form>
                 )}
               </div>
